@@ -10,8 +10,23 @@ function reducer(state, action){
         timestamp: Date.now(),
         id: uuid.v4(),
       }
+      const threadIndex = state.threads.findIndex(
+        (t) => t.id === action.threadId
+      )
+      const oldThread = state.threads[threadIndex]
+      const newThread = {
+        ...oldThread,
+        messages: oldThread.messages.concat(newMessage)
+      }
       return {
-        messages: state.messages.concat(newMessage)
+        ...state,
+        threads: [
+          ...state.threads.slice(0, threadIndex),
+          newThread,
+          ...state.threads.slice(
+            threadIndex + 1, state.threads.length
+          )
+        ]
       }
     case 'DELETE_MESSAGE':
       return {
@@ -25,7 +40,27 @@ function reducer(state, action){
 }
 
 
-const initialState = { messages: [] }
+const initialState = { 
+  activeThreadId: '1-fca2',
+  threads: [
+    {
+      id: '1-fca2',
+      title: 'Nathan Drake',
+      messages: [
+        {
+          text: 'Greatness from small beginnings',
+          timestamp: Date.now(),
+          id: uuid.v4(),
+        },
+      ]
+    },
+    {
+      id: '2-be91',
+      title: 'Lara Croft',
+      messages: [],
+    }
+  ]
+}
 
 const store = createStore(reducer, initialState)
 
@@ -35,15 +70,44 @@ class App extends React.Component {
   }
 
   render(){
-    const messages = store.getState().messages
+    const state = store.getState()
+    const activeThreadId = state.activeThreadId
+    const threads = state.threads
+    const activeThread = threads.find((t) => t.id === activeThreadId)
+
+    const tabs = threads.map(t => (
+      {
+        title: t.title,
+        active: t.id === activeThreadId,
+      }
+    ))
 
     return (
-      <div className="alert alert-light container mt-5">
-        <MessageView messages={messages}/>
-        <MessageInput />
+      <div> 
+        <ThreadTabs tabs={tabs}/>
+        <Thread thread={activeThread}/>
       </div>
     )
   }
+}
+
+class ThreadTabs extends React.Component {
+  render(){
+    const tabs = this.props.tabs.map((tab, index) => (
+      <div 
+        key={index}
+        className="nav-item"
+      >
+        <a className={tab.active ? "nav-link active" : "nav-link"}>{tab.title}</a>
+      </div>
+    ))
+    return (
+      <div className="nav nav-pills">
+        {tabs}
+      </div>
+    )
+  }
+
 }
 
 class MessageInput extends React.Component {
@@ -68,8 +132,7 @@ class MessageInput extends React.Component {
   }
   render(){
     return (
-      <div className="row justify-content-md-center mt-2">
-        <div className="input-group col-md-6">
+        <div className="input-group">
           <input
             className="form-control"
             onChange={this.onChange}
@@ -84,12 +147,11 @@ class MessageInput extends React.Component {
             Submit
           </button>
         </div>
-      </div>
     )
   }
 }
 
-class MessageView extends React.Component {
+class Thread extends React.Component {
   handleClick = (id) => {
     store.dispatch({
       type: 'DELETE_MESSAGE',
@@ -97,24 +159,26 @@ class MessageView extends React.Component {
     })
   }
   render(){
-    const messages = this.props.messages.map((message, index) => (
-      <div className="row justify-content-md-center">
+    const messages = this.props.thread.messages.map((message, index) => (
         <div
-          className="card col-md-6"
+          className="card"
           key={index}
           onClick={() => this.handleClick(message.id)}
         >
-        
             <div className="card-body">
               <h5 className="card-title">{message.text}</h5>
               <h6 className="card-subtitle">@{message.timestamp}</h6>
             </div>
         </div>
-      </div>
     ))
     return (
-      <div className="list-group">
-        {messages}
+      <div className="row justify-content-md-center mt-4">
+      <div className="col-md-12 text-center">
+        <div className="list-group">
+          {messages}
+        </div>
+        <MessageInput/>
+      </div>
       </div>
     )
   }
