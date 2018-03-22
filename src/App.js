@@ -124,7 +124,8 @@ class MessageInput extends React.Component {
   handleSubmit = () => {
     store.dispatch({
       type: 'ADD_MESSAGE',
-      text: this.state.value
+      text: this.state.value,
+      threadId: this.props.threadId,
     })
     this.setState({
       value: '',
@@ -177,7 +178,7 @@ class Thread extends React.Component {
         <div className="list-group">
           {messages}
         </div>
-        <MessageInput/>
+        <MessageInput threadId={this.props.thread.id}/>
       </div>
       </div>
     )
