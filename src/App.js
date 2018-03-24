@@ -1,13 +1,12 @@
 import React from 'react'
-import { createStore } from 'redux'
+import { createStore, combineReducers } from 'redux'
 import uuid from 'uuid'
 
-function reducer(state = {},action){
-  return {
-    activeThreadId: activeThreadIdReducer(state.activeThreadId, action),
-    threads: threadsReducer(state.threads, action)
-  }
-}
+const reducer = combineReducers({
+  activeThreadId: activeThreadIdReducer,
+  threads: threadsReducer,
+})
+
 
 function activeThreadIdReducer(state = '1-fca2', action){
   if(action.type === 'OPEN_THREAD'){
@@ -34,7 +33,18 @@ function findThreadIndex(threads, action){
   }
 }
 
-function threadsReducer(state, action){
+function threadsReducer(state = [
+  {
+    id: '1-fca2',
+    title: 'Nathan Drake',
+    messages: messagesReducer(undefined, {})
+  },
+  {
+    id: '2-be91',
+    title: 'Lara Croft',
+    messages: messagesReducer(undefined, {})
+  },
+], action){
   switch (action.type){
     case 'ADD_MESSAGE':
     case 'DELETE_MESSAGE': {
@@ -62,7 +72,7 @@ function threadsReducer(state, action){
 
 //Creates new message 
 //Returns new array of messages that includes new message appended to the end of it 
-function messagesReducer(state, action){
+function messagesReducer(state = [], action){
   switch(action.type){
     case 'ADD_MESSAGE': {
       const newMessage = {
@@ -79,29 +89,6 @@ function messagesReducer(state, action){
       return state
     }
   }
-}
-
-
-const initialState = { 
-  activeThreadId: '1-fca2',
-  threads: [
-    {
-      id: '1-fca2',
-      title: 'Nathan Drake',
-      messages: [
-        {
-          text: 'Greatness from small beginnings',
-          timestamp: Date.now(),
-          id: uuid.v4(),
-        },
-      ]
-    },
-    {
-      id: '2-be91',
-      title: 'Lara Croft',
-      messages: [],
-    }
-  ]
 }
 
 const store = createStore(reducer)
