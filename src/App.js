@@ -70,8 +70,7 @@ function threadsReducer(state = [
   }
 }
 
-//Creates new message 
-//Returns new array of messages that includes new message appended to the end of it 
+
 function messagesReducer(state = [], action){
   switch(action.type){
     case 'ADD_MESSAGE': {
@@ -114,40 +113,59 @@ class App extends React.Component {
 
     return (
       <div> 
-        <ThreadTabs tabs={tabs}/>
+        <ThreadTabs/>
         <Thread thread={activeThread}/>
       </div>
     )
   }
 }
 
-class ThreadTabs extends React.Component {
-  handleClick = (id) => {
-    store.dispatch({
-      type: 'OPEN_THREAD',
-      id: id,
-    })
-  }
-  render(){
-    const tabs = this.props.tabs.map((tab, index) => (
-      <div 
-        key={index}
-        className="nav-item"
-        onClick={() => this.handleClick(tab.id)}
-      >
-        <a 
+const Tabs = (props) => (
+  <div className="nav nav-pills">
+    {
+      props.tabs.map((tab, index) => (
+        <div
+          key={index}
+          className="nav-item"
+          onClick={() => props.onClick(tab.id)}
+        >
+          <a 
           className={tab.active ? "nav-link active" : "nav-link"}
           style={{cursor: 'pointer'}}
-          >{tab.title}</a>
-      </div>
+          >
+            {tab.title}
+          </a>
+        </div>
+      ))
+    }
+  </div>
+)
+
+class ThreadTabs extends React.Component {
+  componentDidMount(){
+    store.subscribe(() => this.forceUpdate())
+  }
+  render(){
+    const state = store.getState()
+    const tabs = state.threads.map(t => (
+      {
+        title: t.title,
+        active: t.id === state.activeThreadId,
+        id: t.id,
+      }
     ))
     return (
-      <div className="nav nav-pills">
-        {tabs}
-      </div>
+      <Tabs
+        tabs={tabs}
+        onClick={(id) => (
+          store.dispatch({
+            type: 'OPEN_THREAD',
+            id: id,
+          })
+        )}
+      />
     )
   }
-
 }
 
 class MessageInput extends React.Component {
