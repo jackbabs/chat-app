@@ -2,41 +2,83 @@ import React from 'react'
 import { createStore } from 'redux'
 import uuid from 'uuid'
 
-function reducer(state, action){
+function reducer(state = {},action){
+  return {
+    activeThreadId: activeThreadIdReducer(state.activeThreadId, action),
+    threads: threadsReducer(state.threads, action)
+  }
+}
+
+function activeThreadIdReducer(state = '1-fca2', action){
+  if(action.type === 'OPEN_THREAD'){
+    return action.id
+  } else {
+    return state
+  }
+}
+
+function findThreadIndex(threads, action){
   switch(action.type){
+    case 'ADD_MESSAGE': {
+      return threads.findIndex(
+        (t) => t.id == action.threadId
+      )
+    }
+    case 'DELETE_MESSAGE': {
+      return threads.findIndex(
+        (t) => t.messages.find((m) => (
+          m.id === action.id
+        ))
+      )
+    }
+  }
+}
+
+function threadsReducer(state, action){
+  switch (action.type){
     case 'ADD_MESSAGE':
+    case 'DELETE_MESSAGE': {
+      const threadIndex = findThreadIndex(state, action)
+
+      const oldThread = state[threadIndex]
+
+      const newThread = {
+        ...oldThread,
+        messages: messagesReducer(oldThread.messages, action)
+      }
+      return [
+        ...state.slice(0, threadIndex),
+        newThread,
+        ...state.slice(
+          threadIndex + 1, state.length
+        )
+      ]
+    }
+    default: { 
+      return state
+    }
+  }
+}
+
+//Creates new message 
+//Returns new array of messages that includes new message appended to the end of it 
+function messagesReducer(state, action){
+  switch(action.type){
+    case 'ADD_MESSAGE': {
       const newMessage = {
         text: action.text,
         timestamp: Date.now(),
-        id: uuid.v4(),
+        id: uuid.v4()
       }
-      const threadIndex = state.threads.findIndex(
-        (t) => t.id === action.threadId
-      )
-      const oldThread = state.threads[threadIndex]
-      const newThread = {
-        ...oldThread,
-        messages: oldThread.messages.concat(newMessage)
-      }
-      return {
-        ...state,
-        threads: [
-          ...state.threads.slice(0, threadIndex),
-          newThread,
-          ...state.threads.slice(
-            threadIndex + 1, state.threads.length
-          )
-        ]
-      }
-    case 'DELETE_MESSAGE':
-      return {
-        messages: state.messages.filter((m) => (
-          m.id !== action.id
-        ))
-      }
-    default: 
+      return state.concat(newMessage)
+    }
+    case 'DELETE_MESSAGE': {
+      return state.filter(m => m.id !== action.id)
+    }
+    default: { 
       return state
     }
+  }
 }
 
 
@@ -62,7 +104,7 @@ const initialState = {
   ]
 }
 
-const store = createStore(reducer, initialState)
+const store = createStore(reducer)
 
 class App extends React.Component {
   componentDidMount(){
@@ -79,6 +121,7 @@ class App extends React.Component {
       {
         title: t.title,
         active: t.id === activeThreadId,
+        id: t.id,
       }
     ))
 
@@ -92,13 +135,23 @@ class App extends React.Component {
 }
 
 class ThreadTabs extends React.Component {
+  handleClick = (id) => {
+    store.dispatch({
+      type: 'OPEN_THREAD',
+      id: id,
+    })
+  }
   render(){
     const tabs = this.props.tabs.map((tab, index) => (
       <div 
         key={index}
         className="nav-item"
+        onClick={() => this.handleClick(tab.id)}
       >
-        <a className={tab.active ? "nav-link active" : "nav-link"}>{tab.title}</a>
+        <a 
+          className={tab.active ? "nav-link active" : "nav-link"}
+          style={{cursor: 'pointer'}}
+          >{tab.title}</a>
       </div>
     ))
     return (
