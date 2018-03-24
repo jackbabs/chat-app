@@ -92,33 +92,12 @@ function messagesReducer(state = [], action){
 
 const store = createStore(reducer)
 
-class App extends React.Component {
-  componentDidMount(){
-    store.subscribe(() => this.forceUpdate())
-  }
-
-  render(){
-    const state = store.getState()
-    const activeThreadId = state.activeThreadId
-    const threads = state.threads
-    const activeThread = threads.find((t) => t.id === activeThreadId)
-
-    const tabs = threads.map(t => (
-      {
-        title: t.title,
-        active: t.id === activeThreadId,
-        id: t.id,
-      }
-    ))
-
-    return (
-      <div> 
-        <ThreadTabs/>
-        <Thread thread={activeThread}/>
-      </div>
-    )
-  }
-}
+const App = () => (
+  <div> 
+    <ThreadTabs/>
+    <ThreadDisplay/>
+  </div>
+)
 
 const Tabs = (props) => (
   <div className="nav nav-pills">
@@ -168,7 +147,7 @@ class ThreadTabs extends React.Component {
   }
 }
 
-class MessageInput extends React.Component {
+class TextFieldSubmit extends React.Component {
   state = {
     value: '',
   }
@@ -180,11 +159,7 @@ class MessageInput extends React.Component {
   }
 
   handleSubmit = () => {
-    store.dispatch({
-      type: 'ADD_MESSAGE',
-      text: this.state.value,
-      threadId: this.props.threadId,
-    })
+    this.props.onSubmit(this.state.value)
     this.setState({
       value: '',
     })
@@ -210,35 +185,68 @@ class MessageInput extends React.Component {
   }
 }
 
-class Thread extends React.Component {
-  handleClick = (id) => {
-    store.dispatch({
-      type: 'DELETE_MESSAGE',
-      id: id,
-    })
-  }
-  render(){
-    const messages = this.props.thread.messages.map((message, index) => (
-        <div
-          className="card"
-          key={index}
-          onClick={() => this.handleClick(message.id)}
-        >
-            <div className="card-body">
-              <h5 className="card-title">{message.text}</h5>
-              <h6 className="card-subtitle">@{message.timestamp}</h6>
-            </div>
+const MessageList = (props) => (
+  <div>
+  {
+    props.messages.map((m, index) => (
+      <div
+        className="card"
+        key={index}
+        onClick={() => props.onClick(m.id)}
+      >
+        <div className="card-body">
+          <h5 className="card-title">{m.text}</h5>
+          <h6 className="card-subtitle">@{m.timestamp}</h6>
         </div>
+      </div>
     ))
-    return (
-      <div className="row justify-content-md-center mt-4">
+  }
+  </div>
+)
+
+const Thread = (props) => (
+  <div className="row justify-content-md-center mt-4">
       <div className="col-md-12 text-center">
         <div className="list-group">
-          {messages}
+          <MessageList
+            messages={props.thread.messages}
+            onClick={props.onMessageClick}
+          />
+          <TextFieldSubmit
+            onSubmit={props.onMessageSubmit}
+          />
         </div>
-        <MessageInput threadId={this.props.thread.id}/>
-      </div>
-      </div>
+    </div>
+  </div>
+)
+
+class ThreadDisplay extends React.Component {
+  componentDidMount(){
+    store.subscribe(() => this.forceUpdate())
+  }
+  render(){
+    const state = store.getState()
+    const activeThreadId = state.activeThreadId
+    const activeThread = state.threads.find(
+      t => t.id === activeThreadId
+    )
+    return (
+      <Thread
+        thread={activeThread}
+        onMessageClick={(id) => (
+          store.dispatch({
+            type: 'DELETE_MESSAGE',
+            id: id,
+          })
+        )}
+        onMessageSubmit={(text) => (
+          store.dispatch({
+            type: 'ADD_MESSAGE',
+            text: text, 
+            threadId: activeThreadId,
+          })
+        )}
+      />
     )
   }
 }
